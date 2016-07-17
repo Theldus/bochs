@@ -102,6 +102,7 @@
 %token <sval> BX_TOKEN_MODEBP
 %token <sval> BX_TOKEN_VMEXITBP
 %token <sval> BX_TOKEN_PRINT_STACK
+%token <sval> BX_TOKEN_BACKTRACE
 %token <sval> BX_TOKEN_WATCH
 %token <sval> BX_TOKEN_UNWATCH
 %token <sval> BX_TOKEN_READ
@@ -181,6 +182,7 @@ command:
     | modebp_command
     | vmexitbp_command
     | print_stack_command
+    | backtrace_command
     | watch_point_command
     | page_command
     | tlb_command
@@ -337,6 +339,19 @@ print_stack_command:
     | BX_TOKEN_PRINT_STACK BX_TOKEN_NUMERIC '\n'
       {
           bx_dbg_print_stack_command($2);
+          free($1);
+      }
+    ;
+
+backtrace_command:
+      BX_TOKEN_BACKTRACE '\n'
+      {
+          dbg_printf("Backtrace: please type the depth desired!\n");
+          free($1);
+      }
+    | BX_TOKEN_BACKTRACE BX_TOKEN_NUMERIC '\n'
+      {
+          bx_dbg_backtrace_command($2);
           free($1);
       }
     ;
@@ -1048,6 +1063,11 @@ help_command:
      | BX_TOKEN_HELP BX_TOKEN_PRINT_STACK '\n'
        {
          dbg_printf("print-stack [num_words] - print the num_words top 16 bit words on the stack\n");
+         free($1);free($2);
+       }
+     | BX_TOKEN_HELP BX_TOKEN_BACKTRACE '\n'
+       {
+         dbg_printf("backtrace <depth> - print the backtrace based on depth\n");
          free($1);free($2);
        }
      | BX_TOKEN_HELP BX_TOKEN_LOAD_SYMBOLS '\n'
