@@ -1320,6 +1320,17 @@ Bit16u conv_2xBit8u_to_Bit16u(const Bit8u* buf)
   return ret;
 }
 
+void get_appropriate_value(bx_address *addr, Bit8u *buf, unsigned len)
+{
+	if (len == 8)
+		*addr = (Bit64u)((conv_4xBit8u_to_Bit32u(buf+4)) << 31) | 
+			(conv_4xBit8u_to_Bit32u(buf));
+	else if(len == 4)
+		*addr = conv_4xBit8u_to_Bit32u(buf);
+	else
+		*addr = conv_2xBit8u_to_Bit16u(buf);
+}
+
 // toggles mode switch breakpoint
 void bx_dbg_modebp_command()
 {
@@ -1733,6 +1744,63 @@ void bx_dbg_print_stack_command(unsigned nwords)
 
     linear_sp += len;
   }
+}
+
+void bx_dbg_backtrace_command(unsigned depth)
+{
+	const char* symbol;
+	Bit8u buf[8];
+	bx_address linear_bp;
+	bx_address value;
+	unsigned len;
+
+#if BX_SUPPORT_X86_64
+	if (BX_CPU(dbg_cpu)->get_cpu_mode() == BX_MODE_LONG_64) {
+		linear_bp = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RBP);
+		len = 8;
+	}
+	else
+#endif
+	{
+		if (BX_CPU(dbg_cpu)->sregs[BX_SEG_REG_SS].cache.u.segment.d_b) {
+			linear_bp = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_EBP);
+			len = 4;
+		}
+		else {
+			linear_bp = BX_CPU(dbg_cpu)->get_reg16(BX_16BIT_REG_BP);
+			len = 2;
+		}
+
+		linear_bp = BX_CPU(dbg_cpu)->get_laddr(BX_SEG_REG_SS, linear_bp);
+	}
+
+	dbg_printf("~~~~~~~~~~~~ Backtrace n = %d ~~~~~~~~~~~~\n", depth);
+	bx_dbg_read_linear(dbg_cpu, linear_bp + len, len, buf);
+	get_appropriate_value(&value, buf, len);
+	symbol = bx_dbg_disasm_symbolic_address(value, 0);
+
+	if (len == 8)
+		dbg_printf("Addr: %x%x | Symb: %s\n", GET32H(value), GET32L(value), 
+			symbol, linear_bp);
+	else
+		dbg_printf("Addr: %x | Symb: %s\n",value, symbol, linear_bp);
+
+  while (--depth > 0)
+  {
+    if (! bx_dbg_read_linear(dbg_cpu, linear_bp, len, buf)) break;
+    get_appropriate_value(&linear_bp, buf, len);
+    if (! bx_dbg_read_linear(dbg_cpu, linear_bp + len, len, buf)) break;
+    get_appropriate_value(&value, buf, len);
+		symbol = bx_dbg_disasm_symbolic_address(value, 0);
+		
+		if (len == 8)
+			dbg_printf("Addr: %x%x | Symb: %s\n", GET32H(value), GET32L(value), 
+				symbol, linear_bp);
+		else
+			dbg_printf("Addr: %x | Symb: %s\n",value, symbol, linear_bp);
+	}
+
+	dbg_printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
 
 void bx_dbg_print_watchpoints(void)
@@ -3725,7 +3793,7 @@ void bx_dbg_print_help(void)
   dbg_printf("-*- CPU and memory contents -*-\n");
   dbg_printf("    x, xp, setpmem, writemem, crc, info,\n");
   dbg_printf("    r|reg|regs|registers, fp|fpu, mmx, sse, sreg, dreg, creg,\n");
-  dbg_printf("    page, set, ptime, print-stack, ?|calc\n");
+  dbg_printf("    page, set, ptime, print-stack, backtrace, ?|calc\n");
   dbg_printf("-*- Working with bochs param tree -*-\n");
   dbg_printf("    show \"param\", restore\n");
 }

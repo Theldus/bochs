@@ -110,6 +110,7 @@ void bx_dbg_xlate_address(bx_lin_address laddr);
 void bx_dbg_tlb_lookup(bx_lin_address laddr);
 void bx_dbg_show_command(const char*);
 void bx_dbg_print_stack_command(unsigned nwords);
+void bx_dbg_backtrace_command(unsigned);
 void bx_dbg_print_watchpoints(void);
 void bx_dbg_watchpoint_continue(bx_bool watch_continue);
 void bx_dbg_watch(int type, bx_phy_address address, Bit32u len);
