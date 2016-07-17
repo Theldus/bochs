@@ -1,0 +1,8 @@
+                         ~~ Bochs 2.6.8 ~~
+
+This is an clone from the official SVN repo, I'm not a maintainer or
+something like that, nor have the purpose of starting another project
+based on this.
+
+Here contains only a few small changes that I think might be useful for
+me and others in operating systems development, :-D.
